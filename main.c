@@ -28,15 +28,8 @@ ssize_t receive_request(int socket_fd, char *request, ssize_t request_capacity) 
             request_capacity - total_received, 
             0
         );
-        // TODO: ステータスコードを追加する
-        if (received == -1) {
-            perror("recv failed\n");
-            exit(1);
-        }
-        // TODO: ステータスコードを追加する
-        if (received == 0) {
-            perror("recv failed\n");
-            exit(1);
+        if (received <= 0) {
+            return -1;
         }
         total_received += received;
         if (has_http_header_end(request, total_received)) {
@@ -46,17 +39,16 @@ ssize_t receive_request(int socket_fd, char *request, ssize_t request_capacity) 
     return total_received;
 }
 
-void send_response(int socket_fd, char *buffer, size_t length) {
+int send_response(int socket_fd, char *buffer, size_t length) {
     size_t total_sent = 0;
     while (total_sent < length) {
         ssize_t sent = send(socket_fd, buffer + total_sent, length - total_sent, 0);
         if (sent == -1) {
-            perror("send failed");
-            close(socket_fd);
-            return;
+            return -1;
         }
         total_sent += (size_t)sent;
     }
+    return 0;
 }
 
 char *get_reason(int status) {
@@ -195,10 +187,17 @@ int main() {
         char *request = malloc(request_capacity);
         if (request == NULL) {
             perror("malloc failed\n");
+            close(connected_fd);
             exit(1);
         }
 
         ssize_t total = receive_request(connected_fd, request, request_capacity);
+        if (total == -1) {
+            perror("recv failed\n");
+            close(connected_fd);
+            free(request);
+            continue;
+        }
         request[total] = '\0';
         char *method = strtok(request, " ");
         char *path = strtok(NULL, " ");
@@ -207,6 +206,8 @@ int main() {
         char *response = malloc(response_size + 1);
         if (response == NULL) {
             perror("malloc failed\n");
+            close(connected_fd);
+            free(request);
             exit(1);
         }
 
@@ -216,7 +217,13 @@ int main() {
             build_response(response, response_size, 405, "Only GET method is supported\n");
         }
 
-        send_response(connected_fd, response, strlen(response));
+        if (send_response(connected_fd, response, strlen(response)) == -1) {
+            perror("send failed\n");
+            close(connected_fd);
+            free(request);
+            free(response);
+            exit(1);
+        }
 
         close(connected_fd);
         free(request);
