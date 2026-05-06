@@ -25,7 +25,7 @@ sleep 1
 # TODO: ボディの取り出しを改善する（現在は5行目決め打ち）
 
 assert "GET / HTTP/1.1"             "Hello World!"
-assert "GET /hoge HTTP/1.1"    "404 Not Found"
+assert "GET /hoge HTTP/1.1"         "404 Not Found"
 assert "POST / HTTP/1.1"            "Only GET method is supported"
 
 assert "GET /calc?query=1 HTTP/1.1"       "1"

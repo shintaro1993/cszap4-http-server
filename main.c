@@ -67,10 +67,6 @@ char *get_reason(int status) {
 }
 
 void build_response(char *response, size_t response_size, int status, char *body) {
-    if (body == NULL) {
-        body = "";
-    }
-
     snprintf(response, response_size, 
         "HTTP/1.1 %d %s\r\n"
         "Content-Type: text/plain\r\n"
@@ -90,23 +86,19 @@ void build_response(char *response, size_t response_size, int status, char *body
 bool calc(char *query, int *result) {
     char *p = query;
     *result = strtol(p, &p, 10);
-
     while (*p) {
         if (*p == '+') {
             p++;
             *result += strtol(p, &p, 10);
             continue;
         }
-
         if (*p == '-') {
             p++;
             *result -= strtol(p, &p, 10);
             continue;
         }
-
         return false;
     }
-
     return true;
 }
 
